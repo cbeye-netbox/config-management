@@ -1,0 +1,13 @@
+# Text for "NetBox Python Configuration Overrides" in the admin console (Config page).
+#
+# This is the override as it was on this server on 17 November 2026, plus the plugin:
+# 'netbox_config_management' at the end of PLUGINS, and the PLUGINS_CONFIG block.
+# If the override has changed since then, keep your PLUGINS list and add the same two things.
+# If you already have a PLUGINS_CONFIG, add the two entries to it.
+
+PLUGINS = ['netbox_dns', 'netbox_acls', 'netbox_bgp', 'netbox_documents', 'netbox_floorplan', 'netbox_interface_synchronization', 'netbox_qrcode', 'netbox_reorder_rack', 'netbox_lifecycle', 'validity', 'netbox_config_management']
+
+PLUGINS_CONFIG = {
+    'netbox_config_management': {'collect_queue': 'high', 'push_queue': 'default'},
+    'netbox_branching': {'exempt_models': ['netbox_config_management.*']},
+}

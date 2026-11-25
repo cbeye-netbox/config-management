@@ -1,0 +1,107 @@
+plugin commit: 0303b78 (netboxlabs/netbox-config-management)
+patches:       0001-allow-core-queues.patch
+constraints:  constraints-exact.txt sha256 36022ef454c40c1092da20ee45e99f46f88e2522180729ccc7bfaa8a129b154d
+build image:  python:3.14-slim (linux/amd64)
+built:        2026-11-24T23:32:35Z
+archive:      sha256 db045406b01f1afa403b02fdaa90fd4f4b8e61772727ce09df66dc99ac3d1c0d
+
+Patch applied to a copy of the plugin source before the build:
+
+diff --git a/docs/configuration.md b/docs/configuration.md
+index fb5b7de..cff68c4 100644
+--- a/docs/configuration.md
++++ b/docs/configuration.md
+@@ -12,7 +12,7 @@ with platform profiles, not here.
+ |---|---|---|---|
+ | `callback_timeout` | int | `3600` | Seconds an external executor has, from claiming a deployment, to report its outcome. After that the deployment is failed and the device may have been changed. `0` disables it |
+ | `claim_timeout` | int | `300` | Seconds an external executor has to claim a deployment handed to it. After that the deployment is failed and nothing was pushed. `0` disables it |
+-| `collect_queue` | str | `'collect'` | Queue for collection and evaluation jobs (prefixed with the plugin name) |
++| `collect_queue` | str | `'collect'` | Queue for collection and evaluation jobs (prefixed with the plugin name). `'high'`, `'default'` or `'low'` selects that core queue instead |
+ | `collect_sweep_interval` | int | `5` | Minutes between runs of the collection sweep |
+ | `credential_provider` | str | `'environment'` | Where device credentials come from |
+ | `credentials` | dict | `{}` | Credential sets for the environment provider (see below) |
+@@ -26,7 +26,7 @@ with platform profiles, not here.
+ | `min_revisions_per_device` | int | `2` | Running revisions always kept per device, whatever their age |
+ | `observation_timeout` | int | `3600` | Seconds to wait for a config collected after a push, where nothing in NetBox can reach the device. After that the deployment is failed as unverified and the change is left in place. `0` disables it |
+ | `push_enabled` | bool | `False` | Global kill switch for all executors. Nothing reaches a device while it is off |
+-| `push_queue` | str | `'push'` | Queue for deployment jobs (prefixed with the plugin name) |
++| `push_queue` | str | `'push'` | Queue for deployment jobs (prefixed with the plugin name). `'high'`, `'default'` or `'low'` selects that core queue instead |
+ | `render_sweep_interval` | int | `15` | Minutes between runs of the intended re-render sweep |
+ | `retention_days` | int | `90` | Age at which revisions are pruned |
+ | `retry_unreachable` | bool | `False` | Retry a push once, after five minutes, if the device was unreachable |
+diff --git a/netbox_config_management/jobs.py b/netbox_config_management/jobs.py
+index bf37b47..240db17 100644
+--- a/netbox_config_management/jobs.py
++++ b/netbox_config_management/jobs.py
+@@ -58,6 +58,10 @@ def _fail(runner, message):
+     return JobFailed(message)
+ 
+ 
++# NetBox's own queues. Every worker serves them, including one started without queue names.
++CORE_QUEUES = ('high', 'default', 'low')
++
++
+ class QueuedJobRunner(JobRunner):
+     """A job which runs on one of the plugin's dedicated queues."""
+ 
+@@ -65,7 +69,12 @@ class QueuedJobRunner(JobRunner):
+ 
+     @classmethod
+     def queue_name(cls):
+-        return f'{PLUGIN}.{_setting(cls.queue_setting)}'
++        name = _setting(cls.queue_setting)
++        # A core queue is used as named. This is for deployments whose workers cannot be
++        # started with extra queue names, at the price of sharing the queue with other jobs.
++        if name in CORE_QUEUES:
++            return name
++        return f'{PLUGIN}.{name}'
+ 
+     @classmethod
+     def enqueue(cls, *args, **kwargs):
+
+Packages in the wheelhouse:
+
+annotated-types==0.8.0
+bcrypt==5.0.0
+certifi==2026.10.23
+cffi==2.1.1
+charset-normalizer==3.5.2
+cryptography==50.0.2
+hier-config==3.7.1
+idna==3.20
+invoke==3.0.3
+jinja2==3.1.6
+junos-eznc==2.8.3
+lxml==6.1.3
+markdown-it-py==4.2.0
+markupsafe==3.0.4
+mdurl==0.1.2
+napalm==5.2.0
+ncclient==0.7.1
+netaddr==1.3.0
+netbox-config-management==0.0.0
+netmiko==4.8.0
+netutils==1.19.2
+ntc_templates==9.3.0
+paramiko==5.1.0
+pycparser==3.12
+pydantic==2.14.3
+pydantic_core==2.50.4
+pyeapi==1.0.4
+pygments==2.21.0
+pynacl==1.6.2
+pyparsing==3.3.3
+pyserial==3.5
+pyyaml==6.0.3
+requests==2.34.2
+rich==15.0.0
+scp==0.16.2
+six==1.17.0
+textfsm==2.1.0
+transitions==0.9.3
+ttp==0.10.1
+ttp_templates==0.6.21
+typing-inspection==0.4.5
+typing_extensions==4.16.0
+urllib3==2.8.0
+yamlloader==1.6.0

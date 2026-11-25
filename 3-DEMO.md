@@ -116,7 +116,7 @@ Run on the lab on 25 November 2026 with an IOS XE 17.16 switch: after a change o
 
 What it needs:
 
-- A device login that may run `show running-config` and `show startup-config` (privilege 15, or an enable secret). NetBox only reads with it.
+- A device login that may run `show running-config` and `show startup-config` (privilege 15, or an enable secret). NetBox reads with it. It writes nothing to a device: pushing is off by default.
 - SSH from the NetBox worker pods to the device's primary IP address in NetBox.
 - The login in the plugin's settings. That is a config change in the admin console, so the NetBox pods restart once more (17 minutes on the lab).
 
@@ -129,7 +129,7 @@ Two commands:
 
 The first stores the login under the name `lab` and deploys the change. The password is asked for on the terminal and never shown. `./cfg2nb.sh nbe show-override` prints the settings with passwords hidden.
 
-The second puts HCLAB455 into a second managed scope, "Config drift check: live pull (lab)", which names that login. NetBox logs in only to devices in that scope. Every other device stays in the scope without a login. With `--interval 5` NetBox also reads the devices of that scope by itself every 5 minutes. Without it NetBox reads them only when asked.
+The second puts HCLAB455 into a second managed scope, "Config drift check: live pull (lab)", which names that login. NetBox logs in only to devices in that scope. Every other device stays in the scope without a login. With `--interval 1` NetBox also reads the devices of that scope by itself, every 5 minutes: that is how often the plugin checks which devices were last read longer ago than the interval. Without it NetBox reads them only when asked.
 
 Then, after a change on the device:
 

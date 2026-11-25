@@ -32,6 +32,9 @@
 #                  .env; without it the command asks)
 #   CFG2NB_CONSOLE_URL  the admin console as seen from the pod
 #                  (default http://kotsadm.<namespace>.svc.cluster.local:3000)
+#   NCM_DEVICE_USERNAME, NCM_DEVICE_PASSWORD, NCM_DEVICE_SECRET
+#                  the device login for "cfg2nb.sh nbe add-login" (environment or .env;
+#                  without them the command asks)
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -115,11 +118,17 @@ load_env_value() {
 token="$(load_env_value NETBOX_TOKEN)"
 public="$(load_env_value NETBOX_PUBLIC_URL)"
 console_password="$(load_env_value KOTS_PASSWORD)"
+device_user="$(load_env_value NCM_DEVICE_USERNAME)"
+device_password="$(load_env_value NCM_DEVICE_PASSWORD)"
+device_secret="$(load_env_value NCM_DEVICE_SECRET)"
 {
     [ -z "$public" ] || printf "NETBOX_PUBLIC_URL='%s'\n" "$public"
     # The admin console, for "cfg2nb nbe ...": reached inside the cluster as well.
     printf "KOTS_URL='%s'\n" "${CFG2NB_CONSOLE_URL:-http://kotsadm.$namespace.svc.cluster.local:3000}"
     [ -z "$console_password" ] || printf "KOTS_PASSWORD='%s'\n" "$console_password"
+    [ -z "$device_user" ] || printf "NCM_DEVICE_USERNAME='%s'\n" "$device_user"
+    [ -z "$device_password" ] || printf "NCM_DEVICE_PASSWORD='%s'\n" "$device_password"
+    [ -z "$device_secret" ] || printf "NCM_DEVICE_SECRET='%s'\n" "$device_secret"
     printf "NETBOX_URL='%s'\n" "${CFG2NB_POD_URL:-http://netbox-netbox.$namespace.svc.cluster.local}"
     printf "NETBOX_FORWARDED_PROTO='https'\n"
     printf "NETBOX_NO_PROXY='1'\n"

@@ -16,6 +16,8 @@ Nothing is clicked by hand. Step 1 asks for the admin console password, step 2 f
 
 Step 2 works without step 1. It then builds the device in NetBox and stops before the drift part.
 
+Optional, and off unless you turn it on: NetBox can log in to a device and read its config itself (`./cfg2nb.sh nbe add-login`, `./cfg2nb.sh ncm scope --credential-set`, `./cfg2nb.sh ncm collect`). `3-DEMO.md` has the steps. Without it no device login is stored in NetBox.
+
 ## Files
 
 | File | What it is |

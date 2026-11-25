@@ -108,6 +108,43 @@ Two things the posted text needs:
 - The indentation as the device prints it. The comparison reads the config as a tree, and a config without indentation compares as all different. `./cfg2nb.sh restore FILE -o restored.cfg` repairs a file that lost it.
 - Secrets may differ from the stand-ins in NetBox. The platform profile that the import sets up compares secret-bearing lines without their secret, and leaves `snmp-server community` lines out of the comparison.
 
+## Optional: NetBox reads the device itself
+
+The steps above need no device login in NetBox: a config is posted over REST. NetBox can also log in to a device and read the running config itself. In the "Config History" tab such a config has the source "Live pull" and a posted one "REST API".
+
+Run on the lab on 25 November 2026 with an IOS XE 17.16 switch: after a change on the switch, NetBox logged in, read the config and reported the drift, 7 seconds in all. Not run against a Catalyst 9300 with 17.12.
+
+What it needs:
+
+- A device login that may run `show running-config` and `show startup-config` (privilege 15, or an enable secret). NetBox only reads with it.
+- SSH from the NetBox worker pods to the device's primary IP address in NetBox.
+- The login in the plugin's settings. That is a config change in the admin console, so the NetBox pods restart once more (17 minutes on the lab).
+
+Two commands:
+
+```sh
+./cfg2nb.sh nbe add-login --set lab                              # asks for the admin console password, the device user name and its password
+./cfg2nb.sh ncm scope --device HCLAB455 --credential-set lab     # after the restart
+```
+
+The first stores the login under the name `lab` and deploys the change. The password is asked for on the terminal and never shown. `./cfg2nb.sh nbe show-override` prints the settings with passwords hidden.
+
+The second puts HCLAB455 into a second managed scope, "Config drift check: live pull (lab)", which names that login. NetBox logs in only to devices in that scope. Every other device stays in the scope without a login. With `--interval 5` NetBox also reads the devices of that scope by itself every 5 minutes. Without it NetBox reads them only when asked.
+
+Then, after a change on the device:
+
+```sh
+./cfg2nb.sh ncm collect --device HCLAB455
+```
+
+or the "Collect" button on the device's "Compliance" tab ("Collect now" on "Config History"). NetBox logs in, stores the config if it differs from the newest one and evaluates it.
+
+To do the restart only once, store the login before the plugin is installed: `./cfg2nb.sh nbe add-login --set lab --no-deploy`, then `./install-plugin.sh`. The installer builds on the saved version, so both changes go out together. This order is covered by the script's tests and was not run on a server.
+
+To stop it: `./cfg2nb.sh ncm scope --device HCLAB455 --no-login` takes the device out of that scope again.
+
+One thing to know: do not delete the tags "Config drift: live pull (lab)" and "Config drift: live pull guard" by hand. They are the filter of that scope, and the plugin treats a scope without a filter as "every device".
+
 ## What to say if asked
 
 | Question | Answer |
@@ -115,7 +152,7 @@ Two things the posted text needs:
 | Is this a product feature? | The plugin is alpha: version 0.0.0, no release yet. What is shown is what it does today. |
 | What does the score mean? | Each section has a weight, and only sections in "enforce" mode count. The preset for IOS XE has five sections. The import adds a sixth for ACLs, because the preset has none and ACL lines would otherwise not be scored. |
 | What is the Remediation box with "Open remediation request"? | The plugin can plan the commands that bring the device back to the standard (25 commands in this case) and put them through a review. Nothing reaches a device: pushing is off by default (`push_enabled`), and the demo does not turn it on. |
-| What does the Collect button do? | It makes NetBox log in to the device and read its config. That needs a device login in the plugin's settings, which the demo does not set. Without one the collection fails and changes nothing. |
+| What does the Collect button do? | It makes NetBox log in to the device and read its config. That needs a device login in the plugin's settings, which the demo does not set unless you follow "Optional: NetBox reads the device itself" above. Without one the collection fails before any connection is opened and changes nothing. |
 | Can I write a rule such as "no Telnet"? | There is no rule language. The standard is the config NetBox renders, so "no Telnet" is the line `transport input ssh` in each vty block. |
 
 ## If the report does not come
